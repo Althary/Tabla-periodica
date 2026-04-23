@@ -3,27 +3,50 @@ import pandas as pd
 import plotly.express as px
 import io
 
-# 1. Configuración de página (SIEMPRE ABIERTA)
 st.set_page_config(
     page_title="Tabla Periódica",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded" # Fuerza a que la barra lateral inicie abierta
 )
 
-# 2. Inyección de CSS para Borde Industrial y Bloqueo de Barra
 st.markdown(
     """
     <style>
-    [data-testid="collapsedControl"] { display: none !important; }
-    [data-testid="stSidebar"] { border-right: 3px solid #4CAF50; background-color: #111111; }
-    .main { border: 4px solid #4CAF50; border-radius: 15px; margin: 10px; padding: 20px; background-color: #0e1117; }
-    .stSelectbox label { color: #4CAF50 !important; font-weight: bold; font-size: 20px; }
+    /* Bloquea y oculta el botón de cerrar la barra lateral */
+    [data-testid="collapsedControl"] {
+        display: none !important;
+    }
+    
+    /* Agrega un borde distintivo a la barra lateral */
+    [data-testid="stSidebar"] {
+        border-right: 3px solid #4CAF50;
+        background-color: #000000;
+    }
+
+    /* Borde distintivo alrededor de toda la aplicación principal */
+    .main {
+        border: 4px solid #4CAF50;
+        border-radius: 15px;
+        margin: 10px;
+        padding: 20px;
+        background-color: #0e1117;
+    }
+
+    /* Estilo para que el buscador (selectbox) resalte más */
+    .stSelectbox label {
+        color: #4CAF50 !important;
+        font-weight: bold;
+        font-size: 20px;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# 3. Base de Datos Completa (118 Elementos)
+
+# --- BASE DE DATOS INTEGRADA  ---
+# Se incluyen los elementos fundamentales y todos los metales industriales
+# --- BASE DE DATOS COMPLETA (118 Elementos) ---
 datos_csv = """nombre,img_name,simbolo,numero_atomico,masa_atomica,tipo,punto_fusion,densidad,electronegatividad
 Hidrógeno,hydrogen,H,1,1.008,No metal,14.01,0.00008988,2.20
 Helio,helium,He,2,4.0026,Gas noble,0.95,0.0001785,0
@@ -146,54 +169,191 @@ Oganesón,oganesson,Og,118,294,Gas noble,0,5.0,0"""
 
 @st.cache_data
 def cargar_datos():
+    # Convertimos el string a un DataFrame de pandas automáticamente
     return pd.read_csv(io.StringIO(datos_csv))
 
 df = cargar_datos()
 
-# 4. Barra Lateral de Control
+# --- Interfaz Principal ---
+# --- Interfaz Principal ---
+st.title("🧪 Dashboard de Ingeniería: Materiales y Elementos")
+st.markdown("---")
+
+# ==============================================================================
+# --- BARRA LATERAL (Búsqueda y Exportación) ---
+# ==============================================================================
 st.sidebar.header("🔍 Búsqueda y Control")
 nombre_seleccionado = st.sidebar.selectbox("Selecciona un material:", df['nombre'].tolist())
 datos_e = df[df['nombre'] == nombre_seleccionado].iloc[0]
 
-# Generación del reporte para descarga
-reporte_texto = f"FICHA TÉCNICA: {nombre_seleccionado.upper()}\nSímbolo: {datos_e['simbolo']}\nMasa: {datos_e['masa_atomica']} u\nDensidad: {datos_e['densidad']} g/cm³"
-st.sidebar.download_button(f"⬇️ Descargar Ficha de {nombre_seleccionado}", reporte_texto, f"Ficha_{nombre_seleccionado}.txt")
+st.sidebar.markdown("---")
+st.sidebar.subheader("📄 Exportación de Datos")
 
-# 5. Cuerpo Principal
-st.title("🧪 Dashboard Químico: Materiales y Elementos")
+# Plantilla del reporte técnico (generado automáticamente)
+reporte_texto = f"""==================================================
+FICHA TÉCNICA DE MATERIAL: {nombre_seleccionado.upper()}
+==================================================
+Símbolo: {datos_e['simbolo']}
+Número Atómico (Z): {datos_e['numero_atomico']}
+Familia/Tipo: {datos_e['tipo']}
 
+[ PROPIEDADES FUNDAMENTALES ]
+> Masa Atómica:       {datos_e['masa_atomica']} u
+> Punto de Fusión:    {datos_e['punto_fusion']} K
+> Densidad:           {datos_e['densidad']} g/cm³
+> Electronegatividad: {datos_e['electronegatividad'] if datos_e['electronegatividad'] > 0 else 'N/A'}
+
+==================================================
+* Documento generado por el Sistema de Análisis *
+"""
+
+# Botón de descarga
+st.sidebar.download_button(
+    label=f"⬇️ Descargar Ficha del {nombre_seleccionado}",
+    data=reporte_texto,
+    file_name=f"Ficha_Tecnica_{nombre_seleccionado}.txt",
+    mime="text/plain"
+)
+# ==============================================================================
+
+# --- Sección Superior: Foto y Tarjeta ---
 col_foto, col_info = st.columns([1, 1.5])
+
 with col_foto:
+    st.subheader("Muestra Real")
+    # Usamos el nombre en inglés (oculto en los datos) para asegurar que la imagen siempre cargue
     url_img = f"https://images-of-elements.com/s/{datos_e['img_name']}.jpg"
-    st.image(url_img, caption=f"Muestra de {nombre_seleccionado}", use_container_width=True)
-    st.markdown(f"<div style='background-color:#1e1e1e;padding:15px;border-radius:10px;border-top:5px solid #4CAF50;text-align:center;'><h1 style='color:#4CAF50;font-size:70px;margin:0;'>{datos_e['simbolo']}</h1><p style='color:white;margin:0;'>Z = {datos_e['numero_atomico']}</p></div>", unsafe_allow_html=True)
+    st.image(url_img, caption=f"Elemento: {nombre_seleccionado}", use_container_width=True)
+    
+    st.markdown(f"""
+    <div style="background-color: #1e1e1e; padding: 15px; border-radius: 10px; border-top: 5px solid #4CAF50; text-align: center;">
+        <h1 style="color: #4CAF50; font-size: 70px; margin: 0;">{datos_e['simbolo']}</h1>
+        <p style="font-size: 20px; color: white; margin: 0;">Z = {datos_e['numero_atomico']}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 with col_info:
     st.subheader("Especificaciones Técnicas")
     m1, m2 = st.columns(2)
     m1.metric("Masa Atómica", f"{datos_e['masa_atomica']} u")
     m2.metric("Punto de Fusión", f"{datos_e['punto_fusion']} K")
+    
     m3, m4 = st.columns(2)
     m3.metric("Densidad", f"{datos_e['densidad']} g/cm³")
-    m4.metric("Electronegatividad", f"{datos_e['electronegatividad']}")
+    m4.metric("Electronegatividad", f"{datos_e['electronegatividad'] if datos_e['electronegatividad'] > 0 else 'N/A'}")
 
-# 6. Módulo de Ingeniería (Calculadoras y Comparador)
+    st.info(f"**Categoría Química:** {datos_e['tipo']}")
+
 st.markdown("---")
-tab_grafica, tab_calculos, tab_comparador = st.tabs(["📊 Gráfica de Tendencia", "🧮 Cálculos", "⚔️ Comparador Frente a Frente"])
 
-with tab_grafica:
-    prop = st.selectbox("Variable:", ["densidad", "punto_fusion", "masa_atomica"])
-    fig = px.line(df, x="numero_atomico", y=prop, markers=True, color_discrete_sequence=['#4CAF50'])
-    fig.add_scatter(x=[datos_e['numero_atomico']], y=[datos_e[prop]], mode="markers", marker=dict(size=18, color="red"), name="Actual")
-    st.plotly_chart(fig, use_container_width=True)
+# --- Gráficas de Tendencia ---
+st.header("📊 Comparativa de Propiedades Mecánicas y Químicas")
+propiedad = st.selectbox("Variable a graficar:", ["densidad", "punto_fusion", "masa_atomica", "electronegatividad"])
 
-with tab_calculos:
-    vol = st.number_input("Volumen (cm³):", value=100.0)
-    st.success(f"Peso estimado: **{(datos_e['densidad'] * vol) / 1000:,.3f} kg**")
+# Gráfica interactiva
+fig = px.line(df, x="numero_atomico", y=propiedad, 
+              title=f"Evolución de la {propiedad.replace('_', ' ').title()}",
+              labels={"numero_atomico": "Número Atómico (Z)"},
+              markers=True, color_discrete_sequence=['#4CAF50'])
 
+# Resaltar el elemento seleccionado con un punto rojo gigante
+fig.add_scatter(x=[datos_e['numero_atomico']], y=[datos_e[propiedad]], 
+                mode="markers", marker=dict(size=18, color="red"), name=nombre_seleccionado)
+
+st.plotly_chart(fig, use_container_width=True)
+
+# ==============================================================================
+# --- MÓDULO DE CÁLCULOS Y SELECCIÓN DE MATERIALES ---
+# ==============================================================================
+st.markdown("---")
+st.header("🧮 Modulo de Calculos y Seleccion de Materiales")
+
+# Agregamos una tercera pestaña a nuestra lista
+tab_masa, tab_termica, tab_comparador = st.tabs([
+    "⚖️ Masa/Volumen", 
+    "🔥 Dilatación Térmica", 
+    "⚔️ Comparador de Materiales"
+])
+
+# --- PESTAÑA 1: MASA Y VOLUMEN ---
+with tab_masa:
+    st.subheader("Estimación de Peso para Piezas CAD")
+    if datos_e['densidad'] > 0:
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            volumen_cm3 = st.number_input("Volumen de la pieza (cm³):", min_value=0.1, value=100.0, step=10.0)
+        with col_m2:
+            masa_g = datos_e['densidad'] * volumen_cm3
+            masa_kg = masa_g / 1000
+            st.success(f"Peso estimado: **{masa_kg:,.3f} kg** ({masa_g:,.2f} g)")
+    else:
+        st.warning("No hay datos de densidad disponibles para este elemento.")
+
+# --- PESTAÑA 2: DILATACIÓN TÉRMICA ---
+with tab_termica:
+    st.subheader("Análisis de Expansión por Temperatura")
+    coeficientes_alfa = {
+        "Aluminio": 23.1, "Cobre": 16.7, "Hierro": 11.8, "Titanio": 8.6, 
+        "Oro": 14.2, "Plata": 18.9, "Silicio": 2.6, "Níquel": 13.0, "Plomo": 28.9
+    }
+    
+    if nombre_seleccionado in coeficientes_alfa:
+        alfa = coeficientes_alfa[nombre_seleccionado]
+        st.write(f"Coeficiente ($\\alpha$) del {nombre_seleccionado}: **{alfa} $\\times 10^{-6} / ^\\circ C$**")
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            l_inicial = st.number_input("Longitud (m):", min_value=0.01, value=1.0, step=0.1)
+        with c2:
+            t_inicial = st.number_input("T. inicial (°C):", value=20.0, step=5.0)
+        with c3:
+            t_final = st.number_input("T. final (°C):", value=80.0, step=5.0)
+            
+        delta_l = (alfa * 1e-6) * l_inicial * (t_final - t_inicial)
+        st.metric("Expansión Total (ΔL)", f"{delta_l * 1000:.4f} mm")
+    else:
+        st.warning(f"Coeficiente de dilatación no registrado para {nombre_seleccionado}.")
+
+# --- PESTAÑA 3: COMPARADOR FRENTE A FRENTE ---
 with tab_comparador:
-    mat2_nom = st.selectbox("Comparar con:", df['nombre'].tolist(), index=25)
-    datos_m2 = df[df['nombre'] == mat2_nom].iloc[0]
-    c1, c2 = st.columns(2)
-    with c1: st.metric(nombre_seleccionado, f"{datos_e['densidad']} g/cm³")
-    with c2: st.metric(mat2_nom, f"{datos_m2['densidad']} g/cm³", delta=f"{datos_m2['densidad'] - datos_e['densidad']:.3f}", delta_color="inverse")
+    st.subheader("Análisis Competitivo de Materiales")
+    st.write("Selecciona un segundo material para evaluar sus diferencias críticas de diseño.")
+    
+    col_sel1, col_sel2 = st.columns(2)
+    with col_sel1:
+        # El Material A es el que ya tenías seleccionado arriba
+        st.markdown(f"**Material A (Referencia):** {nombre_seleccionado}")
+        datos_m1 = datos_e
+        
+    with col_sel2:
+        # Buscamos un Material B (por defecto ponemos Aluminio para que no sea el mismo)
+        mat2 = st.selectbox("Material B (A evaluar):", df['nombre'].tolist(), index=12) 
+        datos_m2 = df[df['nombre'] == mat2].iloc[0]
+
+    st.markdown("---")
+    
+    # Columnas de comparación de métricas
+    c_comp1, c_comp2 = st.columns(2)
+    
+    with c_comp1:
+        st.markdown(f"<h2 style='text-align: center; color: #4CAF50;'>{datos_m1['simbolo']}</h2>", unsafe_allow_html=True)
+        st.metric("Punto de Fusión", f"{datos_m1['punto_fusion']} K")
+        st.metric("Densidad", f"{datos_m1['densidad']} g/cm³")
+        st.metric("Masa Atómica", f"{datos_m1['masa_atomica']} u")
+        
+    with c_comp2:
+        st.markdown(f"<h2 style='text-align: center; color: #2196F3;'>{datos_m2['simbolo']}</h2>", unsafe_allow_html=True)
+        
+        # Calculamos los deltas (diferencias) para que el usuario vea exactamente cuánto cambia
+        dif_fusion = datos_m2['punto_fusion'] - datos_m1['punto_fusion']
+        dif_densidad = datos_m2['densidad'] - datos_m1['densidad']
+        dif_masa = datos_m2['masa_atomica'] - datos_m1['masa_atomica']
+        
+        # El parámetro delta_color="inverse" en densidad pone en verde si es más ligero (útil en diseño)
+        st.metric("Punto de Fusión", f"{datos_m2['punto_fusion']} K", delta=f"{dif_fusion:.2f} K")
+        st.metric("Densidad", f"{datos_m2['densidad']} g/cm³", delta=f"{dif_densidad:.3f} g/cm³", delta_color="inverse")
+        st.metric("Masa Atómica", f"{datos_m2['masa_atomica']} u", delta=f"{dif_masa:.3f} u", delta_color="off")
+
+    # Conclusión automática generada por los datos
+    if dif_densidad != 0 or dif_fusion != 0:
+        st.info(f"💡 **Veredicto Técnico:** El **{mat2}** es **{'más ligero' if dif_densidad < 0 else 'más pesado'}** que el {nombre_seleccionado}, y requiere **{'menos' if dif_fusion < 0 else 'más'}** temperatura para fundirse.")
